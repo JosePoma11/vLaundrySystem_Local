@@ -198,8 +198,10 @@ const AddOld = () => {
         ...p,
         date: {
           fecha: tFecha(formik.values.dateRecojo),
-          hora: tHora(formik.values.dateRecojo),
+          hora: DateCurrent().format3,
         },
+        idCuadre: '',
+        idUser: InfoUsuario._id,
       };
     });
 
@@ -514,12 +516,12 @@ const AddOld = () => {
               <div className="actions">
                 <div className="button-actions">
                   <BotonModel
-                    name="Agregar Toalla"
+                    name="Edredon"
                     tabI="6"
                     listenClick={() =>
                       formik.setFieldValue('productos', [
                         ...formik.values.productos,
-                        addRowGarment('Toalla', getPricePrenda('Toalla'), false),
+                        addRowGarment('Edredon', getPricePrenda('Edredon'), false),
                       ])
                     }
                   />

@@ -26,16 +26,56 @@ import Pagar from './Pagar/Pagar';
 import { PrivateRoutes } from '../../../../../../models';
 import './endProcess.scss';
 import { simboloMoneda } from '../../../../../../services/global';
+import { GetDeliveryById } from '../../../../../../services/default.services';
 
 const EndProcess = ({ IdCliente, onClose }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
   const [onAction, setOnAction] = useState('principal');
+
   const InfoUsuario = useSelector((state) => state.user.infoUsuario);
   const infoCliente = useSelector((state) => state.orden.registered.find((item) => item._id === IdCliente));
+  const InfoLastCuadre = useSelector((state) => state.cuadre.lastCuadre);
+  const InfoCuadreActual = useSelector((state) => state.cuadre.cuadreActual);
 
   const estadoPago = handleGetInfoPago(infoCliente.ListPago, infoCliente.totalNeto);
+
+  const handleValidarCancelacion = async () => {
+    if (infoCliente.Modalidad !== 'Delivery') {
+      await cancelarEntrega('Tienda');
+      return;
+    }
+
+    const iDeliverys = await GetDeliveryById(IdCliente);
+    if (iDeliverys.length === 0) return;
+
+    const deliveryEntregado = iDeliverys.find((delivery) => delivery.descripcion.includes('Devolucion'));
+
+    if (!deliveryEntregado) return;
+
+    const puedeCancelar =
+      deliveryEntregado.idUser === InfoUsuario._id &&
+      (!deliveryEntregado.idCuadre || deliveryEntregado.idCuadre === InfoLastCuadre._id);
+
+    if (!puedeCancelar) {
+      alert('Solo el usuario que lo Entrego puede Cancelarlo');
+      return;
+    }
+
+    await cancelarEntrega('Delivery', deliveryEntregado._id);
+  };
+
+  async function cancelarEntrega(modalidad, IdDelivery = null) {
+    const payload = { IdCliente, info: { modalidad } };
+    if (IdDelivery) payload.info.IdDelivery = IdDelivery;
+
+    const res = await dispatch(CancelEntrega_OrdenService(payload));
+
+    if (res.payload) {
+      onClose(false);
+    }
+  }
 
   const handleCancelarEntrega = () => {
     dispatch(CancelEntrega_OrdenService(IdCliente)).then((res) => {
@@ -50,7 +90,10 @@ const EndProcess = ({ IdCliente, onClose }) => {
       AnularOrderService({
         id: IdCliente,
         infoCliente,
-        infoAnulacion: { infoAnulacion: { ...infoAnulacion, _id: IdCliente }, rol: InfoUsuario.rol },
+        infoAnulacion: {
+          infoAnulacion: { ...infoAnulacion, _id: IdCliente, idUser: InfoUsuario._id },
+          rol: InfoUsuario.rol,
+        },
       })
     ).then((res) => {
       if (res.payload) {
@@ -91,6 +134,13 @@ const EndProcess = ({ IdCliente, onClose }) => {
         fecha: DateCurrent().format4,
         hora: DateCurrent().format3,
       },
+      idUser: InfoUsuario._id,
+      idCuadre: InfoCuadreActual?.saved
+        ? InfoLastCuadre?._id === InfoCuadreActual?._id &&
+          InfoLastCuadre?.infoUser._id === InfoCuadreActual?.infoUser._id
+          ? InfoCuadreActual?._id
+          : ''
+        : '',
     };
 
     const newEstadoPago = await handleGetInfoPago([...infoCliente.ListPago, newPago], infoCliente.totalNeto);
@@ -126,6 +176,13 @@ const EndProcess = ({ IdCliente, onClose }) => {
         fecha: DateCurrent().format4,
         hora: DateCurrent().format3,
         monto: iDelivery.mDevolucion,
+        idUser: InfoUsuario._id,
+        idCuadre: InfoCuadreActual?.saved
+          ? InfoLastCuadre?._id === InfoCuadreActual?._id &&
+            InfoLastCuadre?.infoUser._id === InfoCuadreActual?.infoUser._id
+            ? InfoCuadreActual?._id
+            : ''
+          : '',
       };
     }
 
@@ -217,7 +274,8 @@ const EndProcess = ({ IdCliente, onClose }) => {
                 Pagar
               </button>
             ) : null}
-            {infoCliente.dateRecepcion.fecha === DateCurrent().format4 || infoCliente.estadoPrenda !== 'entregado' ? (
+
+            {infoCliente.dateCreation.fecha === DateCurrent().format4 ? (
               <button type="button" className="btn-exm" onClick={() => setOnAction('anular')}>
                 Anular
               </button>
@@ -234,7 +292,7 @@ const EndProcess = ({ IdCliente, onClose }) => {
               </button>
             ) : null}
             {infoCliente.dateEntrega.fecha === DateCurrent().format4 && infoCliente.estadoPrenda === 'entregado' ? (
-              <button type="button" className="btn-exm" onClick={handleCancelarEntrega}>
+              <button type="button" className="btn-exm" onClick={handleValidarCancelacion}>
                 Cancelar Entrega
               </button>
             ) : null}

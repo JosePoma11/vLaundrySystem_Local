@@ -66,7 +66,7 @@ const Pendientes = () => {
         }); // "2" es Almacen
         const data = response.data;
         const { facturaActualizada, factura } = data;
-        socket.emit('client:change-info', facturaActualizada);
+        socket.emit('client:updateOrder', facturaActualizada);
         return factura;
       });
 

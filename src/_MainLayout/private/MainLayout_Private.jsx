@@ -10,7 +10,7 @@ import { GetCodigos } from '../../redux/actions/aCodigo';
 import { GetOrdenServices_DateRange } from '../../redux/actions/aOrdenServices';
 import { GetPrendas } from '../../redux/actions/aPrenda';
 import { GetMetas } from '../../redux/actions/aMetas';
-import { GetFirstFilter } from '../../utils/functions';
+import { DateCurrent, GetFirstFilter } from '../../utils/functions';
 import { LS_updateRegisteredDay, setOrderServiceId } from '../../redux/states/service_order';
 
 import { notifications } from '@mantine/notifications';
@@ -46,7 +46,7 @@ import TimeOut from '../out-of-time.png';
 import moment from 'moment';
 import LoaderSpiner from '../../components/LoaderSpinner/LoaderSpiner';
 import { useRef } from 'react';
-import { GetLastCuadre } from '../../redux/actions/aCuadre';
+import { GetCuadre } from '../../redux/actions/aCuadre';
 import { LS_updateDelivery } from '../../redux/states/delivery';
 
 import { socket } from '../../utils/socket/connect';
@@ -72,6 +72,7 @@ const PrivateMasterLayout = (props) => {
   const infoPuntos = useSelector((state) => state.modificadores.InfoPuntos);
   const infoPromocion = useSelector((state) => state.promocion.infoPromocion);
   const infoNegocio = useSelector((state) => state.negocio.infoNegocio);
+  const infoCuadreActual = useSelector((state) => state.cuadre.cuadreActual);
 
   const [loading, setLoading] = useState(true);
 
@@ -132,6 +133,10 @@ const PrivateMasterLayout = (props) => {
             promises.push(dispatch(GetInfoNegocio()));
           }
 
+          if (infoCuadreActual === null) {
+            promises.push(dispatch(GetCuadre({ date: DateCurrent().format4, id: InfoUsuario._id })));
+          }
+
           // Esperar a que todas las promesas se resuelvan
           const responses = await Promise.all(promises);
 
@@ -149,7 +154,7 @@ const PrivateMasterLayout = (props) => {
         }
       }
 
-      dispatch(GetLastCuadre());
+      // dispatch(GetLastCuadre());
     };
 
     fetchData();
@@ -218,7 +223,7 @@ const PrivateMasterLayout = (props) => {
   }, [reserved]);
 
   useEffect(() => {
-    socket.on('server:change-info', (data) => {
+    socket.on('server:orderUpdated', (data) => {
       dispatch(LS_updateRegistered(data));
       dispatch(LS_updateRegisteredDay({ order: { ...data } }));
     });
@@ -229,6 +234,10 @@ const PrivateMasterLayout = (props) => {
 
     socket.on('server:change-cod', (data) => {
       dispatch(LS_updateCodigo(data.codActual));
+    });
+
+    socket.on('server:changeCuadre', (data) => {
+      dispatch(GetCuadre({ date: DateCurrent().format4, id: InfoUsuario._id }));
     });
 
     socket.on('server:cPricePrendas', (data) => {
@@ -304,7 +313,7 @@ const PrivateMasterLayout = (props) => {
 
     return () => {
       // Remove the event listener when the component unmounts
-      socket.off('server:change-info');
+      socket.off('server:orderUpdated');
       socket.off('server:change-cod');
       socket.off('server:cDelivery');
       socket.off('server:cPricePrendas');
@@ -329,7 +338,9 @@ const PrivateMasterLayout = (props) => {
             <HeaderCoord />
             {InfoUsuario.rol === Roles.ADMIN ? <HeaderAdmin /> : null}
           </div>
-          <section className="body_pcp">{props.children}</section>
+          <section className={`body_pcp ${InfoUsuario.rol === Roles.ADMIN ? 'mode-admin' : 'mode-user'}`}>
+            {props.children}
+          </section>
 
           <div id="btn-extra" className="btn-action-extra">
             {InfoUsuario.rol !== Roles.PERS ? (

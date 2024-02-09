@@ -51,6 +51,8 @@ const OrdenServicio = ({ mode, action, onAction, iEdit, onReturn, iDelivery }) =
   const infoPrendas = useSelector((state) => state.prenda.infoPrendas);
   const InfoNegocio = useSelector((state) => state.negocio.infoNegocio);
   const InfoUsuario = useSelector((state) => state.user.infoUsuario);
+  const InfoLastCuadre = useSelector((state) => state.cuadre.lastCuadre);
+  const InfoCuadreActual = useSelector((state) => state.cuadre.cuadreActual);
 
   const { InfoImpuesto, InfoPuntos } = useSelector((state) => state.modificadores);
 
@@ -224,6 +226,13 @@ const OrdenServicio = ({ mode, action, onAction, iEdit, onReturn, iDelivery }) =
           hora: moment().format('HH:mm'),
         },
         ...value,
+        idCuadre: InfoCuadreActual?.saved
+          ? InfoLastCuadre?._id === InfoCuadreActual?._id &&
+            InfoLastCuadre?.infoUser._id === InfoCuadreActual?.infoUser._id
+            ? InfoCuadreActual?._id
+            : ''
+          : '',
+        idUser: InfoUsuario._id,
       };
 
       if (iEdit && iEdit.modeEditAll === false) {
@@ -838,13 +847,13 @@ const OrdenServicio = ({ mode, action, onAction, iEdit, onReturn, iDelivery }) =
             <div className="actions">
               <div className="button-actions">
                 <BotonModel
-                  name="Agregar Toalla"
+                  name="Agregar Edredon"
                   tabI="7"
                   disabled={iEdit ? (iEdit.modeEditAll ? false : true) : false}
                   listenClick={() =>
                     formik.setFieldValue('productos', [
                       ...formik.values.productos,
-                      addRowGarment('Toalla', getPricePrenda('Toalla'), false),
+                      addRowGarment('Edredon', getPricePrenda('Edredon'), false),
                     ])
                   }
                 />
@@ -1204,28 +1213,30 @@ const OrdenServicio = ({ mode, action, onAction, iEdit, onReturn, iDelivery }) =
                         <td>{pago.date.fecha}</td>
                         <td>{pago.total}</td>
                         <td className="space-action">
-                          {DateCurrent().format4 === pago.date.fecha ? (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setIPago(pago);
-                                  setIsPortalPago(!isPortalPago);
-                                }}
-                                className="btn-action btn-edit"
-                              >
-                                <i className="fa-solid fa-pen"></i>
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  handleNoPagar(pago._id);
-                                }}
-                                className="btn-action btn-delete"
-                              >
-                                <i className="fa-solid fa-delete-left"></i>
-                              </button>
-                            </>
+                          {DateCurrent().format4 === pago.date.fecha && pago.idUser === InfoUsuario._id ? (
+                            pago.idCuadre === '' || pago.idCuadre === InfoLastCuadre._id ? (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setIPago(pago);
+                                    setIsPortalPago(!isPortalPago);
+                                  }}
+                                  className="btn-action btn-edit"
+                                >
+                                  <i className="fa-solid fa-pen"></i>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    handleNoPagar(pago._id);
+                                  }}
+                                  className="btn-action btn-delete"
+                                >
+                                  <i className="fa-solid fa-delete-left"></i>
+                                </button>
+                              </>
+                            ) : null
                           ) : null}
                         </td>
                       </tr>

@@ -198,7 +198,7 @@ const Almacen = () => {
         const data = response.data;
         const { facturaActualizada, factura } = data;
         if (response.status === 200) {
-          socket.emit('client:change-info', facturaActualizada);
+          socket.emit('client:updateOrder', facturaActualizada);
           handleRemoveFStorage(o._id);
         }
 

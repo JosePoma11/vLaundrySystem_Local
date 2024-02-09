@@ -52,7 +52,7 @@ const Gasto = ({ onClose }) => {
         }}
         validationSchema={validationSchema}
         onSubmit={(values, { setSubmitting }) => {
-          openModal(values);
+          openModal({ ...values, idUser: InfoUsuario._id, idCuadre: '' });
           setSubmitting(false);
         }}
       >

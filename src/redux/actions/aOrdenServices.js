@@ -48,7 +48,7 @@ export const AddOrdenServices = createAsyncThunk('service_order/AddOrdenServices
     const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/lava-ya/add-factura`, infoRecibo);
 
     if (response.data) {
-      socket.emit('client:change-info', response.data);
+      socket.emit('client:updateOrder', response.data);
 
       dispatch(UpdateNextCodigo());
 
@@ -82,7 +82,7 @@ export const AddOrdenServices = createAsyncThunk('service_order/AddOrdenServices
 export const AddOrdenServices_Old = createAsyncThunk('service_order/AddOrdenServices', async (infoRecibo) => {
   try {
     const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/lava-ya/add-factura`, infoRecibo);
-    socket.emit('client:change-info', response.data);
+    socket.emit('updateOrder', response.data);
     return response.data;
   } catch (error) {
     // Puedes manejar los errores aquí
@@ -100,7 +100,7 @@ export const ReserveOrdenServices = createAsyncThunk(
       const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/lava-ya/add-factura`, info);
       const data = response.data;
       if (data) {
-        socket.emit('client:change-info', data);
+        socket.emit('client:updateOrder', data);
         dispatch(UpdateNextCodigo());
         dispatch(AddDelivery({ ...infoDelivery, idCliente: data._id }));
       }
@@ -123,7 +123,7 @@ export const AddOrdenServices_Delivery = createAsyncThunk(
       const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/lava-ya/add-factura`, infoRecibo);
       if (response.data) {
         const data = response.data;
-        socket.emit('client:change-info', data);
+        socket.emit('client:updateOrder', data);
         const beneficios = data.cargosExtras.beneficios;
         await dispatch(UpdateNextCodigo());
         await dispatch(AddDelivery({ ...infoDelivery, idCliente: data._id }));
@@ -161,8 +161,8 @@ export const UpdateOrdenServices = createAsyncThunk('service_order/UpdateOrdenSe
 
     const data = response.data;
 
-    socket.emit('client:change-info', response.data);
-    // socket.emit('client:change-info:child', response.data);
+    socket.emit('client:updateOrder', response.data);
+    // socket.emit('client:updateOrder:child', response.data);
 
     const beneficios = data.cargosExtras.beneficios;
     if (data && updateData.infoRecibo.estadoPrenda === 'pendiente' && data.Modalidad === 'Delivery') {
@@ -200,8 +200,8 @@ export const UpdateOrdenServices_PagoEntrega = createAsyncThunk(
 
       if (response.data) {
         const res = response.data;
-        socket.emit('client:change-info', res);
-        // socket.emit('client:change-info:child', res);
+        socket.emit('client:updateOrder', res);
+        // socket.emit('client:updateOrder:child', res);
         const score = parseInt(res.totalNeto);
 
         if (res.Pago === 'Completo' && res.estadoPrenda === 'entregado' && res.dni !== '') {
@@ -226,20 +226,26 @@ export const UpdateOrdenServices_PagoEntrega = createAsyncThunk(
   }
 );
 
-export const CancelEntrega_OrdenService = createAsyncThunk('service_order/CancelEntrega_OrdenService', async (id) => {
-  try {
-    // Lógica para cancelar entrega en el backend
-    const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/lava-ya/cancel-entrega/${id}`);
-    const { orderUpdate, idDeliveryDeleted } = response.data;
+export const CancelEntrega_OrdenService = createAsyncThunk(
+  'service_order/CancelEntrega_OrdenService',
+  async ({ IdCliente, info }) => {
+    try {
+      // Lógica para cancelar entrega en el backend
+      const response = await axios.post(
+        `${import.meta.env.VITE_BACKEND_URL}/api/lava-ya/cancel-entrega/${IdCliente}`,
+        info
+      );
+      const { orderUpdate, idDeliveryDeleted } = response.data;
 
-    socket.emit('client:cancel-delivery', idDeliveryDeleted);
-    socket.emit('client:change-info', orderUpdate);
-    Notify('Éxito', 'Entrega y/o Pago de la Orden de Servicio cancelada correctamente', 'success');
+      socket.emit('client:cancel-delivery', idDeliveryDeleted);
+      socket.emit('client:updateOrder', orderUpdate);
+      Notify('Éxito', 'Entrega y/o Pago de la Orden de Servicio cancelada correctamente', 'success');
 
-    return orderUpdate;
-  } catch (error) {
-    console.error('Error al cancelar entrega:', error);
-    Notify('Error', 'No se pudo realizar la cancelación de la Orden de Servicio', 'fail');
-    throw new Error(error);
+      return orderUpdate;
+    } catch (error) {
+      console.error('Error al cancelar entrega:', error);
+      Notify('Error', 'No se pudo realizar la cancelación de la Orden de Servicio', 'fail');
+      throw new Error(error);
+    }
   }
-});
+);
